@@ -1,0 +1,11 @@
+1. read in 2 inputs, input and output folder
+- ignore all non HDF5 files and HDF5 files not formatted
+- handle input correction (no valid data files in folder, input DNE, output DNE)
+
+2. output average position
+- comput avg position for each sensor on each device, for all data files
+- output to CSV files
+- each row is one data file 
+- first column each row data file name
+- 3 columns each row for avg x,y,z position for each sensor
+- each col represents same sensor data from same device 
