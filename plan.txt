@@ -17,3 +17,11 @@ Dictionary:
 fileDictionary:
     key: device[sensor#]
     value: [2, 3, 4]
+
+InputValidation:
+Folders:
+-not empty
+-has files
+-ignore non .hdf5 files
+-ignore .hdf5 files that are improperly formatted
+-handle user input(input output DNE)
