@@ -33,11 +33,25 @@ def inputValidation(inputFolder, outputFolder) -> list:
 # Computes the average position for each sensor on each device in all valid files
 def computeAveragePosition(inputFolder, outputFolder, fileList):
     output = dict() #key = file name, maps to list of x, y, z data
+    # Loop through files in folder
     for file in fileList:
         filePath = inputFolder + '/' + file
+        # Checks if file is a .hdf5 file
         if filePath.endswith('.hdf5'):
             file = h5py.File(filePath, 'r')
-            deviceList = list(file.keys)
+            deviceList = list(file.keys())
+            # Loops through device groups in file
+            for device in deviceList:
+                # Checks if device has Position dataset
+                tempDevice = file[device]
+                if 'Position' in tempDevice:
+                    positionDataset = tempDevice['Position']
+                    shape = positionDataset.shape
+                    # Loops through each sensor in the device
+                    sensorIndex = 1
+                    for i in range(shape[sensorIndex]):
+                        sensorDataset = positionDataset[:, i, :]
+                        print(sensorDataset)
 
 
 def main():
