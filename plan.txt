@@ -9,3 +9,11 @@
 - first column each row data file name
 - 3 columns each row for avg x,y,z position for each sensor
 - each col represents same sensor data from same device 
+
+Dictionary:
+    key: filename
+    value: fileDictionary
+
+fileDictionary:
+    key: device[sensor#]
+    value: [2, 3, 4]
