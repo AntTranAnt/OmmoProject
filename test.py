@@ -10,10 +10,15 @@ import numpy as np
 import sys
 import os
 
+#Calculations
+import math
+
 # Dictionary to represent stored data
+# Dictionary has files as keys, values of deviceDictionary that has key of devicename, value of avg or distance
 # data has keys=filename, value=list<deviceDict>
 # deviceDict has keys=device[sensor#], value=list<sensor avg> for avg
 # deviceDict has keys=device[sensor#], value=maxDistance for distance
+# Call addFile() method before calling addDeviceAvg() or addDeviceDistance()
 class OutputDictionary:
     def __init__(self):
         self.data = {}
@@ -31,6 +36,13 @@ class OutputDictionary:
     
     def __str__(self):
         return str(self.data)
+
+# Object used to represent a 3d sample point
+class SamplePoint:
+    def __init__(self, x, y, z):
+        self.x = x
+        self.y = y
+        self.z = z
 
 # Checks if argument is valid with input folder and output folder
 # returns list of files if valid
@@ -54,8 +66,7 @@ def inputValidation(inputFolder, outputFolder) -> list:
 
 # Loops through all files and finds sensor dataset from all valid 'Position' datasets
 # file.hdf5 -> list<devices> -> device -> list<datasets> -> position dataset -> sensor dataset
-def compute(avgOutput, inputFolder, outputFolder, fileList):
-    output = dict() #key = file name, maps to list of x, y, z data
+def compute(avgOutput, distOutput, inputFolder, outputFolder, fileList):
     # Loop through files in folder
     for file in fileList:
         filePath = inputFolder + '/' + file
@@ -64,6 +75,7 @@ def compute(avgOutput, inputFolder, outputFolder, fileList):
             fileH = h5py.File(filePath, 'r')
             deviceList = list(fileH.keys())
             avgOutput.addFile(file)
+            distOutput.addFile(file)
             # Loops through device groups in file
             for device in deviceList:
                 # Checks if device has Position dataset
@@ -77,6 +89,7 @@ def compute(avgOutput, inputFolder, outputFolder, fileList):
                         sensorDataset = positionDataset[:, i, :]
                         deviceName = device + "[" + str(i) + "]"
                         computeAvgPosition(avgOutput, sensorDataset, file, deviceName)
+                        computeMaxDistance(distOutput, sensorDataset, file, deviceName)
 
 # Computes the average position for each sensorDataset and inputs to output dictionary
 def computeAvgPosition(avgOutput, sensorDataset, filename, deviceName):
@@ -97,6 +110,38 @@ def computeAvgPosition(avgOutput, sensorDataset, filename, deviceName):
         zSum /= sampleNum
         avgOutput.addDeviceAvg(filename, deviceName, [xSum, ySum, zSum])
 
+# Computes max euclidean distance in sampledataset and adds to distance dictionary
+def computeMaxDistance(maxOutput, sensorDataset, filename, deviceName):
+    sampleList = []
+    for sample in sensorDataset:
+        point = SamplePoint(sample[0], sample[1], sample[2])
+        sampleList.append(point)
+    
+    maxOutput.addDeviceDistance(filename, deviceName, maxDistance(sampleList))
+
+# Finds the max distance between 2 3d points in a list of points
+# Brute force approach of O(n^2)
+def maxDistance(sampleList):
+    n = len(sampleList)
+    maxDistance = 0
+ 
+    # Iterate over all possible pairs
+    for i in range(n):
+        for j in range(i + 1, n):
+             
+            # Update maxm
+            maxDistance = max(maxDistance, euclideanDistance(sampleList[i], sampleList[j]))
+    return maxDistance
+
+# Computes the max euclidean distance between 2 3d points
+def euclideanDistance(sample1, sample2):
+    x1, y1, z1 = sample1.x, sample1.y, sample1.z
+    x2, y2, z2 = sample2.x, sample2.y, sample2.z
+    squaredDistance = (x2 - x1)**2 + (y2-y1)**2 + (z2-z1)**2
+    return math.sqrt(squaredDistance)
+
+
+
 def main():
     # Checks for proper input
     if len(sys.argv) != 3:
@@ -109,8 +154,9 @@ def main():
     # Dictionary to keep track of results
     avgOutput = OutputDictionary()
     distOutput = OutputDictionary()
-    compute(avgOutput, inputFolder, outputFolder, fileList)
+    compute(avgOutput, distOutput, inputFolder, outputFolder, fileList)
     print(avgOutput)
+    print(distOutput)
 
 if __name__ == "__main__":
     main()
