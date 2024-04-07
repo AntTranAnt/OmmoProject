@@ -86,11 +86,14 @@ def compute(avgOutput, distOutput, inputFolder, fileList):
                     shape = positionDataset.shape
                     # Loops through each sensor in the device
                     sensorIndex = 1
+                    xyzIndex = 2
                     for i in range(shape[sensorIndex]):
-                        sensorDataset = positionDataset[:, i, :]
-                        deviceName = device + "[" + str(i) + "]"
-                        computeAvgPosition(avgOutput, sensorDataset, file, deviceName)
-                        computeMaxDistance(distOutput, sensorDataset, file, deviceName)
+                        # Checks if Position has xyz inputs
+                        if shape[2] == 3:
+                            sensorDataset = positionDataset[:, i, :]
+                            deviceName = device + "[" + str(i) + "]"
+                            computeAvgPosition(avgOutput, sensorDataset, file, deviceName)
+                            computeMaxDistance(distOutput, sensorDataset, file, deviceName)
 
 # Computes the average position for each sensorDataset and inputs to output dictionary
 def computeAvgPosition(avgOutput, sensorDataset, filename, deviceName):
@@ -141,7 +144,7 @@ def euclideanDistance(sample1, sample2):
     squaredDistance = (x2 - x1)**2 + (y2-y1)**2 + (z2-z1)**2
     return math.sqrt(squaredDistance)
 
-def exportToCSV(avgOutput, outputFolder):
+def exportAVGToCSV(avgOutput, outputFolder):
     outputCSV = outputFolder + "/" + "AveragePosition.csv"
     
     # first row of output file
@@ -169,7 +172,25 @@ def exportToCSV(avgOutput, outputFolder):
         for row in csvRows:
             writer.writerow(row)
 
-
+def exportDistToCSV(distOutput, outputFolder):
+    outputCSV = outputFolder + "/" + "MaxDistance.csv"
+    # first row of output file
+    firstRow = ['Files'] + findAllSensors(distOutput)
+    # Rows to be written to csv file
+    csvRows = [firstRow]
+    for filename, deviceList in distOutput.data.items():
+        row = [filename]
+        for sensor in firstRow[1:]:
+            for deviceDict in deviceList:
+                if sensor in deviceDict:
+                    row.append(deviceDict[sensor])
+                else:
+                    row.append('')
+        csvRows.append(row)
+    with open(outputCSV, 'w', newline='') as file:
+        writer = csv.writer(file)
+        for row in csvRows:
+            writer.writerow(row)
 
 # Finds all of the unique Device[Sensor#] in the avgOutput Dictionary
 def findAllSensors(avgOutput):
@@ -199,7 +220,8 @@ def main():
     compute(avgOutput, distOutput, inputFolder, fileList)
     print(avgOutput)
     print(distOutput)
-    exportToCSV(avgOutput, outputFolder)
+    exportAVGToCSV(avgOutput, outputFolder)
+    exportDistToCSV(distOutput, outputFolder)
 
 if __name__ == "__main__":
     main()

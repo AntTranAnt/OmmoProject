@@ -25,3 +25,6 @@ Folders:
 -ignore non .hdf5 files
 -ignore .hdf5 files that are improperly formatted
 -handle user input(input output DNE)
+
+TOFix:
+What happens in csv when there is a empty Dict.addFile()
