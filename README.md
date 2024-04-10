@@ -12,3 +12,6 @@ OmmoProject.py reads in valid .hdf5 files from input folder, and computes averag
 Compute average position is O(N)
 
 Compute distance is O(N^2)
+
+Future Improvements:
+Computer distance algorithm can be sped up to O(n log n) by using the rotating calipers method (adjusted for 3d points)
