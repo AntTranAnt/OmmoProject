@@ -4,7 +4,6 @@
 
 # h5py file
 import h5py
-import numpy as np
 
 # File management
 import sys
