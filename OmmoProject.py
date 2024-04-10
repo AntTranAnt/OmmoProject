@@ -63,6 +63,13 @@ def inputValidation(inputFolder, outputFolder) -> list:
         print("Input folder is empty")
         return []
     
+    # Check if files are empty or not
+    for file in fileList:
+        if os.path.getsize(inputFolder + "/" + file) == 0:
+            fileList.remove(file)
+    if len(fileList) == 0:
+        print("Input folder has no valid hdf5 files")
+    
     return fileList
 
 # Loops through all files and finds sensor dataset from all valid 'Position' datasets
@@ -94,6 +101,10 @@ def compute(avgOutput, distOutput, inputFolder, fileList):
                             deviceName = device + "[" + str(i) + "]"
                             computeAvgPosition(avgOutput, sensorDataset, file, deviceName)
                             computeMaxDistance(distOutput, sensorDataset, file, deviceName)
+            # Remove file from dictionary if it doesn't have Position dataset
+            if len(avgOutput.data[file]) == 0:
+                avgOutput.data.pop(file)
+                distOutput.data.pop(file)
 
 # Computes the average position for each sensorDataset and inputs to output dictionary
 def computeAvgPosition(avgOutput, sensorDataset, filename, deviceName):
@@ -144,53 +155,72 @@ def euclideanDistance(sample1, sample2):
     squaredDistance = (x2 - x1)**2 + (y2-y1)**2 + (z2-z1)**2
     return math.sqrt(squaredDistance)
 
+# Function to export average dictionary to output folder
 def exportAVGToCSV(avgOutput, outputFolder):
     outputCSV = outputFolder + "/" + "AveragePosition.csv"
     
     # first row of output file
-    firstRow = ['Files'] + findAllSensors(avgOutput)
-    # Rows to be written to csv file
-    csvRows = [firstRow]
+    firstRow = findAllSensors(avgOutput)
+    if len(firstRow) != 0:
+        new_list = [item for sublist in [[device, '', ''] for device in firstRow[:-1]] for item in sublist] + [firstRow[-1]]
+        new_list.insert(0, 'Files')
+        # Rows to be written to csv file
+        csvRows = []
 
-    # Checks to see which devices are found in each file
-    for filename, deviceList in avgOutput.data.items():
-        row = [filename]
-        for sensor in firstRow[1:]:
-            for deviceDict in deviceList:
-                if sensor in deviceDict:
-                    # Add sensor data
-                    row.extend(deviceDict[sensor])
-                else: 
-                    # Skips 3 columns
+        # Checks to see which devices are found in each file
+        for filename, deviceList in avgOutput.data.items():
+            row = [filename]
+            for sensor in firstRow:
+                found = False
+                for deviceDict in deviceList:
+                    if sensor in deviceDict:
+                        # Add sensor data
+                        row.extend(deviceDict[sensor])
+                        found = True
+                if not found:
+                    # Skip 3 columns because no sensor data in this device.
                     row.append('')
                     row.append('')
                     row.append('')
-        csvRows.append(row)
-    
-    with open(outputCSV, 'w', newline='') as file:
-        writer = csv.writer(file)
-        for row in csvRows:
-            writer.writerow(row)
+            csvRows.append(row)
+        
+        # Insert header row in csv file
+        csvRows.insert(0, new_list)
 
+        # Writes to csv file
+        with open(outputCSV, 'w', newline='') as file:
+            writer = csv.writer(file)
+            for row in csvRows:
+                writer.writerow(row)
+    else:
+        print("There are no valid hdf5 files with valid Position dataset")
+
+# Function to export Max Distance Dictionary to output folder
 def exportDistToCSV(distOutput, outputFolder):
     outputCSV = outputFolder + "/" + "MaxDistance.csv"
     # first row of output file
     firstRow = ['Files'] + findAllSensors(distOutput)
-    # Rows to be written to csv file
-    csvRows = [firstRow]
-    for filename, deviceList in distOutput.data.items():
-        row = [filename]
-        for sensor in firstRow[1:]:
-            for deviceDict in deviceList:
-                if sensor in deviceDict:
-                    row.append(deviceDict[sensor])
-                else:
+    
+    if len(firstRow) > 1:
+        # Rows to be written to csv file
+        csvRows = [firstRow]
+        for filename, deviceList in distOutput.data.items():
+            row = [filename]
+            for sensor in firstRow[1:]:
+                found = False
+                for deviceDict in deviceList:
+                    if sensor in deviceDict:
+                        row.append(deviceDict[sensor])
+                        found = True
+                if not found:
                     row.append('')
-        csvRows.append(row)
-    with open(outputCSV, 'w', newline='') as file:
-        writer = csv.writer(file)
-        for row in csvRows:
-            writer.writerow(row)
+            csvRows.append(row)
+
+        # Writes to csv file
+        with open(outputCSV, 'w', newline='') as file:
+            writer = csv.writer(file)
+            for row in csvRows:
+                writer.writerow(row)
 
 # Finds all of the unique Device[Sensor#] in the avgOutput Dictionary
 def findAllSensors(avgOutput):
@@ -217,9 +247,11 @@ def main():
     # Dictionary to keep track of results
     avgOutput = OutputDictionary()
     distOutput = OutputDictionary()
+
+    # Compute Average and Max Position
     compute(avgOutput, distOutput, inputFolder, fileList)
-    print(avgOutput)
-    print(distOutput)
+
+    # Export Results to CSV
     exportAVGToCSV(avgOutput, outputFolder)
     exportDistToCSV(distOutput, outputFolder)
 
