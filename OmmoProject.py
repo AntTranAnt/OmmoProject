@@ -234,6 +234,7 @@ def main():
     # Checks for proper input
     if len(sys.argv) != 3:
         print("Format: python OmmoProject.py input_folder output_folder")
+        return
     inputFolder = sys.argv[1]
     outputFolder = sys.argv[2]
     fileList = inputValidation(inputFolder, outputFolder)
